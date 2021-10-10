@@ -10,6 +10,7 @@ import logging
 from logging import Formatter, FileHandler
 from forms import *
 from models import *
+import seeds
 
 
 # ----------------------------------------------------------------------------#
@@ -128,8 +129,8 @@ def show_venue(venue_id):
     past_shows_count = 0
     upcoming_shows_count = 0
 
-    for genre_list in venue.genres:
-        genres.append(genre_list.name)
+    for genre_id in venue.genre["id"]:
+        genres.append(seeds.genres_list[genre_id])
 
     venue_dict = {
         "id": venue.id,
@@ -178,7 +179,6 @@ def show_venue(venue_id):
 @app.route('/venues/create', methods=['GET', 'POST'])
 def create_venue():
     form = VenueForm()
-    form.genres.choices = [(g.id, g.name) for g in Genre.query.order_by('id')]
 
     try:
         if form.validate_on_submit():
@@ -187,21 +187,17 @@ def create_venue():
             state = form.state.data
             address = form.address.data
             phone = form.phone.data
-            genre_list = form.genres.data
+            genre = {"id": form.genres.data}
             facebook_link = form.facebook_link.data
             image_link = form.image_link.data
             website_link = form.website_link.data
             seeking_talent = form.seeking_talent.data
             seeking_description = form.seeking_description.data
             new_venue = Venue(name=name, city=city, state=state, address=address, phone=phone,
-                              facebook_link=facebook_link, image_link=image_link, website_link=website_link,
-                              seeking_talent=seeking_talent, seeking_description=seeking_description)
+                              genre=genre, facebook_link=facebook_link, image_link=image_link,
+                              website_link=website_link, seeking_talent=seeking_talent,
+                              seeking_description=seeking_description)
             db.session.add(new_venue)
-
-            for g in genre_list:
-                genre = Genre.query.filter_by(id=g).first()
-                genre.venue.append(new_venue)
-
             db.session.commit()
             flash('Venue ' + form.name.data + ' was successfully listed!')
 
@@ -222,9 +218,6 @@ def delete_venue(venue_id):
     venue = Venue.query.get(venue_id)
 
     try:
-        for genre in venue.genres:
-            venue.genres.remove(genre)
-
         for show in venue.shows:
             db.session.delete(show)
 
@@ -283,8 +276,8 @@ def show_artist(artist_id):
     past_shows_count = 0
     upcoming_shows_count = 0
 
-    for genre_list in artist.genres:
-        genres.append(genre_list.name)
+    for genre_id in artist.genre["id"]:
+        genres.append(seeds.genres_list[genre_id])
 
     artist_dict = {
         "id": artist.id,
@@ -332,7 +325,6 @@ def show_artist(artist_id):
 @app.route('/artists/<int:artist_id>/edit', methods=['GET', 'POST'])
 def edit_artist(artist_id):
     form = ArtistForm()
-    form.genres.choices = [(g.id, g.name) for g in Genre.query.order_by('id')]
     artist = Artist.query.filter_by(id=artist_id).first()
     data = {
         "id": artist.id,
@@ -344,7 +336,7 @@ def edit_artist(artist_id):
         form.city.data = artist.city
         form.state.data = artist.state
         form.phone.data = artist.phone
-        form.genres.data = [g.id for g in artist.genres]
+        form.genres.data = [g for g in artist.genre["id"]]
         form.website_link.data = artist.website_link
         form.facebook_link.data = artist.facebook_link
         form.seeking_venue.data = artist.seeking_venue
@@ -362,14 +354,9 @@ def edit_artist(artist_id):
             artist.seeking_venue = form.seeking_venue.data
             artist.seeking_description = form.seeking_description.data
             artist.image_link = form.image_link.data
-
-            for g in artist.genres:
-                artist.genres.remove(g)
-
-            for g in form.genres.data:
-                genre = Genre.query.filter_by(id=g).first()
-                artist.genres.append(genre)
-
+            artist.genre = {
+                "id": form.genres.data
+            }
             db.session.commit()
             flash('Artist ' + form.name.data + ' was successfully updated!')
 
@@ -388,7 +375,6 @@ def edit_artist(artist_id):
 @app.route('/venues/<int:venue_id>/edit', methods=['GET', 'POST'])
 def edit_venue(venue_id):
     form = VenueForm()
-    form.genres.choices = [(g.id, g.name) for g in Genre.query.order_by('id')]
     venue = Venue.query.filter_by(id=venue_id).first()
     data = {
         "id": venue.id,
@@ -401,7 +387,7 @@ def edit_venue(venue_id):
         form.state.data = venue.state
         form.address.data = venue.address
         form.phone.data = venue.phone
-        form.genres.data = [g.id for g in venue.genres]
+        form.genres.data = [g for g in venue.genre["id"]]
         form.website_link.data = venue.website_link
         form.facebook_link.data = venue.facebook_link
         form.seeking_talent.data = venue.seeking_talent
@@ -419,14 +405,9 @@ def edit_venue(venue_id):
             venue.seeking_talent = form.seeking_talent.data
             venue.seeking_description = form.seeking_description.data
             venue.image_link = form.image_link.data
-
-            for g in venue.genres:
-                venue.genres.remove(g)
-
-            for g in form.genres.data:
-                genre = Genre.query.filter_by(id=g).first()
-                venue.genres.append(genre)
-
+            venue.genre = {
+                "id": form.genres.data
+            }
             db.session.commit()
             flash('Venue ' + form.name.data + ' was successfully updated!')
 
@@ -448,7 +429,6 @@ def edit_venue(venue_id):
 @app.route('/artists/create', methods=['GET', 'POST'])
 def create_artist():
     form = ArtistForm()
-    form.genres.choices = [(g.id, g.name) for g in Genre.query.order_by('id')]
 
     try:
         if form.validate_on_submit():
@@ -456,21 +436,16 @@ def create_artist():
             city = form.city.data
             state = form.state.data
             phone = form.phone.data
-            genre_list = form.genres.data
+            genre = {"id": form.genres.data}
             facebook_link = form.facebook_link.data
             image_link = form.image_link.data
             website_link = form.website_link.data
             seeking_venue = form.seeking_venue.data
             seeking_description = form.seeking_description.data
-            new_artist = Artist(name=name, city=city, state=state, phone=phone, facebook_link=facebook_link,
-                                image_link=image_link, website_link=website_link, seeking_venue=seeking_venue,
-                                seeking_description=seeking_description)
+            new_artist = Artist(name=name, city=city, state=state, phone=phone, genre=genre,
+                                facebook_link=facebook_link, image_link=image_link, website_link=website_link,
+                                seeking_venue=seeking_venue, seeking_description=seeking_description)
             db.session.add(new_artist)
-
-            for g in genre_list:
-                genre = Genre.query.filter_by(id=g).first()
-                genre.artist.append(new_artist)
-
             db.session.commit()
             flash('Artist ' + form.name.data + ' was successfully listed!')
 

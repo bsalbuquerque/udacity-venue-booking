@@ -4,6 +4,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
 from wtforms.validators import DataRequired, URL, Regexp, ValidationError
 from models import *
+import seeds
 
 
 def validate_artist_id(form, artist_id):
@@ -27,10 +28,14 @@ def validate_phone(form, phone):
         raise ValidationError("You must enter a valid phone code area")
 
 
+def validate_genres(form, genres):
+    for genre in genres.data:
+        if genre not in seeds.genres_list:
+            raise ValidationError("You must select a valid genre")
+
+
 def validate_facebook_link(form, facebook_link):
-    enum_facebook = ["http://facebook.com/", "https://facebook.com/",
-                     "http://www.facebook.com/", "https://www.facebook.com/"]
-    check_facebook = any(n in facebook_link.data for n in enum_facebook)
+    check_facebook = any(n in facebook_link.data for n in seeds.facebook_list)
     if not check_facebook:
         raise ValidationError("You must enter a Facebook link")
 
@@ -40,7 +45,6 @@ class ShowForm(FlaskForm):
         'artist_id',
         validators=[DataRequired(), validate_artist_id]
     )
-
     venue_id = StringField(
         'venue_id',
         validators=[DataRequired(), validate_venue_id]
@@ -128,7 +132,7 @@ class VenueForm(FlaskForm):
     )
     genres = SelectMultipleField(
         'genres', validators=[DataRequired()],
-        coerce=int, choices=[]
+        coerce=int, choices=[(g[0], g[1]) for g in seeds.genres_list.items()]
     )
     facebook_link = StringField(
         'facebook_link', validators=[DataRequired(), URL(require_tld=True),
@@ -218,7 +222,7 @@ class ArtistForm(FlaskForm):
     )
     genres = SelectMultipleField(
         'genres', validators=[DataRequired()],
-        coerce=int, choices=[]
+        coerce=int, choices=[(g[0], g[1]) for g in seeds.genres_list.items()]
     )
     facebook_link = StringField(
         'facebook_link', validators=[DataRequired(), URL(require_tld=True),
