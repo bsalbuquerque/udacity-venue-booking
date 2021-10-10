@@ -213,14 +213,13 @@ def create_venue():
     return render_template('forms/new_venue.html', form=form)
 
 
+#  Delete Venue
+#  ----------------------------------------------------------------
 @app.route('/venues/<int:venue_id>/delete')
 def delete_venue(venue_id):
     venue = Venue.query.get(venue_id)
 
     try:
-        for show in venue.shows:
-            db.session.delete(show)
-
         db.session.delete(venue)
         db.session.commit()
         flash('Venue ' + venue.name + ' was successfully deleted!')
